@@ -1,0 +1,165 @@
+<head>
+    <script>
+        const url = "https://cors-anywhere.herokuapp.com/https://a.4cdn.org/g/catalog.json";
+        data = [
+            [1, (new Date()).toLocaleString(), "yes", "5", "0", "g", "hello /g/ hlelo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+            [2, (new Date()).toLocaleString(), "", "10", "3", "pol", "oh no"]
+        ]
+
+        // assumes first column is id
+        function buildStructure(data) {
+            var table = document.createElement("table");
+            var tr = document.createElement("tr");
+            for(var i of ["ID", "Time of update", "#R", "#I", "Title", "Comment"]) {
+                var th = document.createElement("th");
+                th.innerText = i;
+                tr.appendChild(th);
+            }
+            table.appendChild(tr);
+            for(var row of data) {
+                var tr = document.createElement("tr");
+                for(var i of row) {
+                    var td = document.createElement("td");
+                    if(row.indexOf(i) == 0) {
+                        var a = document.createElement("a");
+                        var urlBase = "http://boards.4channel.org/g/thread/"
+                        a.href = urlBase + i + "#p" + i;
+                        a.innerText = i;
+                        td.appendChild(a);
+                        tr.appendChild(td);
+                        continue;
+                    }
+                    if(row.indexOf(i) >= row.length -2) {
+                        continue;
+                    }
+                    td.innerText = i;
+                    tr.appendChild(td);
+                }
+                const fname = row[row.length-2];
+                const fext = row[row.length-1];
+                var urlBase = "http://i.4cdn.org/g/";
+                var elem = document.createElement("img");
+                tr.onclick = (ev) => {
+                    var file = fname + "s" + ".jpg";
+                    file = urlBase + file;
+                    elem.style.position = "absolute";
+                    elem.style.top = ev.clientY;
+                    elem.style.left = ev.clientX;
+                    elem.src = file;
+                    table.appendChild(elem);
+                }
+                elem.onmouseleave = (ev) => {
+                    elem.remove();
+                }
+                table.appendChild(tr);
+            }
+
+            return table;
+        }
+
+        getAjaxData = () => new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+
+            // Track the state changes of the request.
+            xhr.onreadystatechange = function () {
+                var DONE = 4; // readyState 4 means the request is done.
+                var OK = 200; // status 200 is a successful return.
+                if (xhr.readyState === DONE) {
+                    if (xhr.status === OK) {
+                        resolve(JSON.parse(xhr.responseText)); // 'This is the output.'
+                    } else {
+                        reject(xhr.status); // An error occurred during the request.
+                    }
+                }
+            };
+
+            // Send the request to send-ajax-data.php
+            xhr.send(null);
+        });
+
+        reload = () => {
+            const body = document.getElementsByTagName("body")[0];
+            //body.appendChild(buildStructure(data));
+
+            getAjaxData().then(data => {
+                data = data.map(a => a.threads).flat()
+                console.log(data);
+                com = d => {
+                    d = String(d).replace("<br>", " ");
+                    d = String(d).replace(/\<.*\>/gim, " ");
+                    var tit = document.createElement("textarea");
+                    tit.innerHTML = d;
+                    d = tit.innerText;
+                    return d;
+                }
+                data = data.filter(a => a.sticky != 1);
+                data = data.map(a => [
+                    a.no, 
+                    a.now, 
+                    a.replies, 
+                    a.images, 
+                    a.sub ?? "",
+                    com(a.com ?? ""),
+                    a.tim,
+                    a.ext
+                ]);
+                //console.log(data);
+                child = buildStructure(data);
+                body.removeChild(body.children[0]);
+                body.appendChild(buildStructure(data));
+            }).catch(err => {
+                console.error(err);
+            });
+        }
+
+        window.onload = () => {
+            reload();
+            setInterval(reload, 5000);
+        }
+
+    </script>
+    <style>
+        body {
+            background-color: rgb(79, 101, 143);
+            color: whitesmoke;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        table {
+            margin-top: 25px;
+            padding: 0;
+            border-collapse: collapse;
+            font-size: small;
+            width: 100%;
+        }
+        td, th, a {
+            padding: 3px;
+            margin: 0;
+            text-align: center;
+            color: whitesmoke;
+        }
+           
+        tr:nth-child(odd){
+            background-color: rgb(35, 45, 71);
+        }
+        tr:nth-child(even){
+            background-color: rgb(63, 83, 139);
+        }
+        td:nth-child(6), td:nth-child(5) {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 40vw;
+        }
+        td:nth-child(5) {
+            max-width: 10vw;
+        }
+
+        tr:not(:nth-child(1)):hover {
+            background-color: rgb(70, 135, 189);
+        }
+    </style>
+</head>
+<body>
+    <table></table>
+</body>
