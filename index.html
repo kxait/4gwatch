@@ -1,26 +1,27 @@
 <head>
     <script>
         const url = "https://cors-anywhere.herokuapp.com/https://a.4cdn.org/g/catalog.json";
-        data = [
-            [1, (new Date()).toLocaleString(), "yes", "5", "0", "g", "hello /g/ hlelo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
-            [2, (new Date()).toLocaleString(), "", "10", "3", "pol", "oh no"]
-        ]
 
-        // assumes first column is id
+        // assumes first column is id, 2 last columns are file name and extension
         function buildStructure(data) {
             var table = document.createElement("table");
             var tr = document.createElement("tr");
+            // create header
             for(var i of ["ID", "Time of update", "#R", "#I", "Title", "Comment"]) {
                 var th = document.createElement("th");
                 th.innerText = i;
                 tr.appendChild(th);
             }
             table.appendChild(tr);
+            // for each thread
             for(var row of data) {
                 var tr = document.createElement("tr");
+                // for each col
                 for(var i of row) {
                     var td = document.createElement("td");
+                    // if col is id
                     if(row.indexOf(i) == 0) {
+                        // create link
                         var a = document.createElement("a");
                         var urlBase = "http://boards.4channel.org/g/thread/"
                         a.href = urlBase + i + "#p" + i;
@@ -29,22 +30,27 @@
                         tr.appendChild(td);
                         continue;
                     }
+                    // fuck this if its file name or ext
                     if(row.indexOf(i) >= row.length -2) {
                         continue;
                     }
+                    // else just draw
                     td.innerText = i;
                     tr.appendChild(td);
                 }
+                // file name create
                 const fname = row[row.length-2];
                 const fext = row[row.length-1];
                 var urlBase = "http://i.4cdn.org/g/";
                 var elem = document.createElement("img");
+                // draw image
                 tr.onclick = (ev) => {
+                    console.log(ev);
                     var file = fname + "s" + ".jpg";
                     file = urlBase + file;
                     elem.style.position = "absolute";
-                    elem.style.top = ev.clientY;
-                    elem.style.left = ev.clientX;
+                    elem.style.top = ev.pageY;
+                    elem.style.left = ev.pageX;
                     elem.src = file;
                     table.appendChild(elem);
                 }
@@ -83,6 +89,7 @@
             //body.appendChild(buildStructure(data));
 
             getAjaxData().then(data => {
+                // format data, remove tags and entities
                 data = data.map(a => a.threads).flat()
                 console.log(data);
                 com = d => {
@@ -94,6 +101,7 @@
                     return d;
                 }
                 data = data.filter(a => a.sticky != 1);
+                // ready for buildstructure
                 data = data.map(a => [
                     a.no, 
                     a.now, 
@@ -106,6 +114,7 @@
                 ]);
                 //console.log(data);
                 child = buildStructure(data);
+                // remove sticky
                 body.removeChild(body.children[0]);
                 body.appendChild(buildStructure(data));
             }).catch(err => {
@@ -115,7 +124,7 @@
 
         window.onload = () => {
             reload();
-            setInterval(reload, 5000);
+            setInterval(reload, 7621);
         }
 
     </script>
@@ -161,5 +170,5 @@
     </style>
 </head>
 <body>
-    <table></table>
+    <table><tr><td>fuck you</td></tr></table>
 </body>
