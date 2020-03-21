@@ -1,8 +1,11 @@
 <head>
     <script>
-        const url = "https://cors-anywhere.herokuapp.com/https://a.4cdn.org/g/catalog.json";
+        const board = "g";
+        const chanurl = "https://a.4cdn.org/" + board + "/catalog.json";
+        const imgurl = "http://i.4cdn.org/" + board + "/";
+        const corsUrlBase = "https://cors-anywhere.herokuapp.com/";
 
-        // assumes first column is id, 2 last columns are file name and extension
+        // assumes first column is id, last column is file name
         function buildStructure(data) {
             var table = document.createElement("table");
             var tr = document.createElement("tr");
@@ -13,6 +16,8 @@
                 tr.appendChild(th);
             }
             table.appendChild(tr);
+
+            // this is a mess, im sorry
             // for each thread
             for(var row of data) {
                 var tr = document.createElement("tr");
@@ -30,8 +35,8 @@
                         tr.appendChild(td);
                         continue;
                     }
-                    // fuck this if its file name or ext
-                    if(row.indexOf(i) >= row.length -2) {
+                    // fuck this if its file name
+                    if(row.indexOf(i) == row.length - 1) {
                         continue;
                     }
                     // else just draw
@@ -39,15 +44,13 @@
                     tr.appendChild(td);
                 }
                 // file name create
-                const fname = row[row.length-2];
-                const fext = row[row.length-1];
-                var urlBase = "http://i.4cdn.org/g/";
+                const fname = row[row.length-1];
                 var elem = document.createElement("img");
-                // draw image
+                // draw image on mouse pos
                 tr.onclick = (ev) => {
                     console.log(ev);
                     var file = fname + "s" + ".jpg";
-                    file = urlBase + file;
+                    file = imgurl + file;
                     elem.style.position = "absolute";
                     elem.style.top = ev.pageY;
                     elem.style.left = ev.pageX;
@@ -64,57 +67,56 @@
         }
 
         getAjaxData = () => new Promise((resolve, reject) => {
+            var url = corsUrlBase + chanurl;
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url);
 
-            // Track the state changes of the request.
             xhr.onreadystatechange = function () {
-                var DONE = 4; // readyState 4 means the request is done.
-                var OK = 200; // status 200 is a successful return.
-                if (xhr.readyState === DONE) {
-                    if (xhr.status === OK) {
-                        resolve(JSON.parse(xhr.responseText)); // 'This is the output.'
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        resolve(JSON.parse(xhr.responseText));
                     } else {
-                        reject(xhr.status); // An error occurred during the request.
+                        reject(xhr.status);
                     }
                 }
             };
-
-            // Send the request to send-ajax-data.php
             xhr.send(null);
         });
 
+        formatAjaxData = (data) => {
+            // pages -> threads list
+            data = data.map(a => a.threads).flat()
+            // replace links and all tags, decode entities with textarea (possibly gravely unsafe, dont care)
+            com = d => {
+                d = String(d).replace("<br>", " ");
+                d = String(d).replace(/\<.*\>/gim, " ");
+                var tit = document.createElement("textarea");
+                tit.innerHTML = d;
+                d = tit.innerText;
+                return d;
+            }
+            // remove sticky posts
+            data = data.filter(a => a.sticky != 1);
+            // ready for buildstructure
+            data = data.map(a => [
+                a.no, 
+                a.now, 
+                a.replies, 
+                a.images, 
+                a.sub ?? "",
+                com(a.com ?? ""),
+                a.tim
+            ]);
+
+            return data;
+        }
+
         reload = () => {
             const body = document.getElementsByTagName("body")[0];
-            //body.appendChild(buildStructure(data));
-
             getAjaxData().then(data => {
-                // format data, remove tags and entities
-                data = data.map(a => a.threads).flat()
-                console.log(data);
-                com = d => {
-                    d = String(d).replace("<br>", " ");
-                    d = String(d).replace(/\<.*\>/gim, " ");
-                    var tit = document.createElement("textarea");
-                    tit.innerHTML = d;
-                    d = tit.innerText;
-                    return d;
-                }
-                data = data.filter(a => a.sticky != 1);
-                // ready for buildstructure
-                data = data.map(a => [
-                    a.no, 
-                    a.now, 
-                    a.replies, 
-                    a.images, 
-                    a.sub ?? "",
-                    com(a.com ?? ""),
-                    a.tim,
-                    a.ext
-                ]);
-                //console.log(data);
+                data = formatAjaxData(data);
                 child = buildStructure(data);
-                // remove sticky
+
                 body.removeChild(body.children[0]);
                 body.appendChild(buildStructure(data));
             }).catch(err => {
@@ -124,7 +126,8 @@
 
         window.onload = () => {
             reload();
-            setInterval(reload, 7621);
+            // cors-anywhere only supports 200 requests per 60 minutes
+            setInterval(reload, 15000);
         }
 
     </script>
@@ -170,5 +173,5 @@
     </style>
 </head>
 <body>
-    <table><tr><td>fuck you</td></tr></table>
+    <table><tr><td>loading please wait</td></tr></table>
 </body>
